@@ -229,6 +229,15 @@ nav button.on svg{animation:tabpop .42s var(--spring)}
 .stp button{width:40px;height:36px;border:0;border-radius:9px;background:var(--card);color:var(--pri);font-size:22px;line-height:1}
 .stp input{width:56px;margin:0;padding:6px 0;text-align:center;background:transparent;border:0;font-weight:600}
 .qx{color:var(--pri);font-weight:600;margin-left:6px}
+.ir{display:flex;align-items:center;gap:6px;padding:8px 0;border-top:.5px solid var(--line)}
+.ir .in{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ig2{width:64px!important;margin:0!important;padding:8px 4px!important;text-align:center;border-radius:10px!important}
+.stb{width:30px;height:30px;border:0;border-radius:8px;background:var(--bg);color:var(--pri);font-size:18px;line-height:1;flex:none}
+.gu{color:var(--mute);font-size:13px}.ik{min-width:34px;text-align:right;font-size:14px}
+#pl .sgi{padding:11px 2px}#pd{margin-top:10px}
+#sc{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:30;display:flex;align-items:center;justify-content:center;padding:20px}
+.scb{width:100%;max-width:420px;background:var(--card);border-radius:18px;padding:14px}
+#scv{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;background:#000;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -248,6 +257,21 @@ nav button.on svg{animation:tabpop .42s var(--spring)}
     <label>Nazwa<input id="nm" autocomplete="off" placeholder="np. owsianka z bananem lub bułka x3"></label>
     <div class="sg" id="sg"></div>
     <div class="qrow" id="qrow"><span>Ilość</span><div class="stp"><button type="button" data-a="qm" aria-label="Mniej">−</button><input id="qt" type="number" inputmode="decimal" min="0.5" step="0.5" value="1"><button type="button" data-a="qp" aria-label="Więcej">+</button></div></div>
+    <details id="pr"><summary>Produkty z gramaturą</summary><div class="dc">
+      <div id="il"></div>
+      <input id="ps" placeholder="Szukaj produktu, np. skyr, jajko, bułka" autocomplete="off">
+      <div id="pl"></div>
+      <div class="acts" style="margin-top:8px"><button class="ghost" type="button" data-a="bar">Skanuj kod</button><button class="ghost" type="button" id="lab" data-a="lab" hidden>Etykieta (AI)</button><button class="ghost" type="button" data-a="off">Szukaj w sieci</button><button class="ghost" type="button" data-a="pman">Dodaj ręcznie</button></div>
+      <p class="empty" id="pm" style="margin-top:8px"></p>
+      <div id="pd" hidden>
+        <label>Nazwa produktu<input id="pdn"></label>
+        <div class="g4"><label>kcal na 100 g<input id="pdk" type="number" inputmode="decimal"></label><label>Białko (g)<input id="pdp" type="number" inputmode="decimal"></label><label>Tłuszcze (g)<input id="pdf" type="number" inputmode="decimal"></label><label>Węglowodany (g)<input id="pdc" type="number" inputmode="decimal"></label></div>
+        <label>Ilość w posiłku (g)<input id="pdg" type="number" inputmode="decimal" value="100"></label>
+        <label class="tg"><span>Zapisz w Moich produktach</span><input type="checkbox" id="pds" checked></label>
+        <div class="acts"><button class="ghost" type="button" data-a="pdx">Anuluj</button><button class="ghost" type="button" data-a="pdadd">Dodaj do posiłku</button></div>
+      </div>
+      <input id="lbf" type="file" accept="image/*" capture="environment" hidden>
+    </div></details>
     <details id="mx"><summary>Makro na 1 porcję (opcjonalnie)</summary><div class="dc">
       <div class="g4">
         <label>Kalorie (kcal)<input id="m1" type="number" inputmode="decimal" min="0"></label>
@@ -267,11 +291,12 @@ nav button.on svg{animation:tabpop .42s var(--spring)}
     <div class="act"><button data-a="close">Anuluj</button><button class="pri" data-a="save">Zapisz</button></div>
   </div>
 </div>
+<div id="sc" hidden><div class="scb"><video id="scv" playsinline muted></video><p class="empty" id="scm" style="margin:2px 0 8px">Skieruj aparat na kod kreskowy</p><input id="ean" inputmode="numeric" placeholder="lub wpisz kod EAN"><div class="acts" style="margin-top:8px"><button class="ghost" type="button" data-a="scx">Zamknij</button><button class="ghost" type="button" data-a="ean">Szukaj kodu</button></div></div></div>
 <script>
 const KEY='planer-posilkow-v1';
 let S={plan:{},history:[]};
 try{const r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)}catch(e){}
-if(!S.plan)S.plan={};if(!S.history)S.history=[];if(!S.set)S.set={accent:0,mode:'auto'};if(!S.slots)S.slots=[['sniadanie','Śniadanie'],['obiad','Obiad'],['kolacja','Kolacja'],['przekaska','Przekąski']];
+if(!S.plan)S.plan={};if(!S.history)S.history=[];if(!S.set)S.set={accent:0,mode:'auto'};if(!S.foods)S.foods=[];if(!S.slots)S.slots=[['sniadanie','Śniadanie'],['obiad','Obiad'],['kolacja','Kolacja'],['przekaska','Przekąski']];
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -308,7 +333,7 @@ function tipHTML(){
   return `<div class="tip"><span><b>Zainstaluj na iPhonie</b>Safari → Udostępnij → „Dodaj do ekranu początkowego”. Zrób to przed wpisywaniem posiłków, bo dane w Safari i w aplikacji z ekranu są osobne.</span><button data-a="tipx" aria-label="Zamknij">×</button></div>`;
 }
 
-function setImg(v){curImg=v||'';$('#pi').hidden=!curImg;$('#rp').hidden=!curImg;if(curImg)$('#pi').src=curImg;$('#aip').hidden=!(curImg&&IMGOK)}
+function setImg(v){curImg=v||'';$('#pi').hidden=!curImg;$('#rp').hidden=!curImg;if(curImg)$('#pi').src=curImg;$('#aip').hidden=!(curImg&&imgReady())}
 function pickPhoto(f){
   const r=new FileReader();
   r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,640/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);setImg(c.toDataURL('image/jpeg',.7));$('#ex').open=true};im.src=r.result};
@@ -351,7 +376,7 @@ async function aiPhoto(){
   b.disabled=false;b.textContent='Policz ze zdjęcia (AI)';
 }
 let SMP=null;
-let IMGOK=false;(async()=>{try{if(window.claude&&claude.use){SMP=await claude.use('sample');if(SMP){$('#ai').hidden=false;try{IMGOK=!!(await SMP.limits()).images}catch(e){}setImg(curImg)}}}catch(e){}})();
+let IMGOK=false;(async()=>{try{if(window.claude&&claude.use){SMP=await claude.use('sample');if(SMP){$('#ai').hidden=false;try{IMGOK=!!(await SMP.limits()).images}catch(e){}setImg(curImg);refreshAI()}}}catch(e){}})();
 async function aiCalc(){
   const ing=$('#ig').value.trim(),n=$('#aim'),b=$('#aib');
   if(!ing){n.textContent='Wpisz składniki z gramaturą, np. 100 g skyru, 50 g borówek.';return}
@@ -371,7 +396,7 @@ function mealRow(m){
   return `<div class="meal" data-id="${m.id}"><button class="mi" data-a="tog" data-id="${m.id}">${m.img?`<img class="th" src="${m.img}" alt="">`:''}<span><span class="mn">${esc(m.name)}${qtag(m)}</span>${hasM(m)?`<span class="mm">${macro(eff(m))}</span>`:''}</span><svg class="chev${o?' up':''}" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10l5 5 5-5"/></svg></button>${o?`<div class="dt">${m.img?`<img src="${m.img}" alt="">`:''}${ings.length?`<div class="ing">${ings.map(i=>`<span>${esc(i)}</span>`).join('')}</div>`:''}<div class="acts"><button class="ghost" data-a="edit" data-id="${m.id}">Edytuj</button><button class="ghost dng" data-a="del" data-id="${m.id}">Usuń</button></div></div>`:''}</div>`;
 }
 function setHTML(){
-  return `<div class="set"><header><h1>Ustawienia</h1></header><h3>Kolor aplikacji</h3><div class="sw">${PAL.map((p,i)=>`<button class="${i===S.set.accent?'on':''}" style="background:${p[1].pri}" data-a="acc" data-i="${i}" aria-label="${p[0]}"></button>`).join('')}</div><h3>Wygląd</h3><div class="chips">${[['auto','Auto'],['light','Jasny'],['dark','Ciemny']].map(([k,n])=>`<button class="chip${S.set.mode===k?' on':''}" data-a="mode" data-k="${k}">${n}</button>`).join('')}</div><h3>Pory posiłków</h3><p class="empty" style="margin-bottom:8px">Przytrzymaj uchwyt i przeciągnij, aby zmienić kolejność pór na planie.</p>${SL.map(([id,n],i)=>`<div class="meal" data-slot="${id}"><div class="mn">${esc(n)}</div><div class="rt"><button class="grip" aria-label="Przesuń porę ${esc(n)}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 8h14M5 12h14M5 16h14"/></svg></button>${SL.length>1?`<button class="x" data-a="rmslot" data-i="${i}" aria-label="Usuń porę ${esc(n)}">×</button>`:''}</div></div>`).join('')}<div class="row" style="margin-top:10px"><input id="sn" placeholder="Nowa pora posiłku" autocomplete="off"><button class="add" data-a="addslot">Dodaj</button></div>${backupHTML()}</div>`;
+  return `<div class="set"><header><h1>Ustawienia</h1></header><h3>Kolor aplikacji</h3><div class="sw">${PAL.map((p,i)=>`<button class="${i===S.set.accent?'on':''}" style="background:${p[1].pri}" data-a="acc" data-i="${i}" aria-label="${p[0]}"></button>`).join('')}</div><h3>Wygląd</h3><div class="chips">${[['auto','Auto'],['light','Jasny'],['dark','Ciemny']].map(([k,n])=>`<button class="chip${S.set.mode===k?' on':''}" data-a="mode" data-k="${k}">${n}</button>`).join('')}</div><h3>Pory posiłków</h3><p class="empty" style="margin-bottom:8px">Przytrzymaj uchwyt i przeciągnij, aby zmienić kolejność pór na planie.</p>${SL.map(([id,n],i)=>`<div class="meal" data-slot="${id}"><div class="mn">${esc(n)}</div><div class="rt"><button class="grip" aria-label="Przesuń porę ${esc(n)}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 8h14M5 12h14M5 16h14"/></svg></button>${SL.length>1?`<button class="x" data-a="rmslot" data-i="${i}" aria-label="Usuń porę ${esc(n)}">×</button>`:''}</div></div>`).join('')}<div class="row" style="margin-top:10px"><input id="sn" placeholder="Nowa pora posiłku" autocomplete="off"><button class="add" data-a="addslot">Dodaj</button></div>${aiSetHTML()}${foodsHTML()}${backupHTML()}</div>`;
 }
 function toggleD(d){
   const c=d.querySelector('.dc');if(!c){d.open=!d.open;return}
@@ -491,7 +516,7 @@ const nrm=s=>s.toLowerCase().replace(/ł/g,'l').normalize('NFD').replace(/[\u030
 function localCalc(){
   const raw=$('#ig').value.trim(),n=$('#lcm');
   if(!raw){n.textContent='Wpisz składniki z gramaturą, np. 100 g skyru, 50 g borówek.';return}
-  const tot=[0,0,0,0],ok=[],bad=[];
+  const tot=[0,0,0,0],ok=[],bad=[],items=[];
   raw.replace(/(\d),(\d)/g,'$1.$2').split(/[,;\n]+|\s+\+\s+|\s+i\s+/).map(s=>s.trim()).filter(Boolean).forEach(tok=>{
     let r=nrm(tok),g=0,m;
     if(m=r.match(/(\d+(?:[.,]\d+)?)\s*(kg|dag|gr|g|ml|l)(?![a-z])/)){g=+m[1].replace(',','.')*({kg:1000,dag:10,l:1000}[m[2]]||1);r=r.replace(m[0],' ')}
@@ -503,10 +528,10 @@ function localCalc(){
     if(!best){bad.push(tok);return}
     if(!g)g=cnt*best.u;
     if(!g){bad.push(tok+' (podaj gramaturę)');return}
-    const x=g/100;tot[0]+=best.k*x;tot[1]+=best.p*x;tot[2]+=best.f*x;tot[3]+=best.c*x;ok.push(tok);
+    const x=g/100;tot[0]+=best.k*x;tot[1]+=best.p*x;tot[2]+=best.f*x;tot[3]+=best.c*x;ok.push(tok);items.push({n:tok.replace(/\d+[.,]?\d*\s*(kg|dag|gr|g|ml|l|szt\.?|x)?\s*/gi,'').trim()||tok,g:Math.round(g*10)/10,k:best.k,p:best.p,f:best.f,c:best.c});
   });
   if(!ok.length){n.textContent='Nie rozpoznano składników'+(bad.length?': '+bad.join(', '):'')+'. Wpisz je z gramaturą, np. 100 g skyru.';return}
-  [1,2,3,4].forEach((i,k)=>$('#m'+i).value=k?Math.round(tot[k]*10)/10:Math.round(tot[0]));
+  setItems(items);openD($('#pr'));
   openD($('#mx'));
   n.textContent='Z bazy: '+ok.length+' z '+(ok.length+bad.length)+' składników. Wartości przybliżone, sprawdź etykiety.'+(bad.length?' Pominięto: '+bad.join(', ')+'.':'');
 }
@@ -541,7 +566,7 @@ function backupHTML(){
   const lb=S.set.lastBackup?new Date(S.set.lastBackup).toLocaleDateString('pl-PL',{day:'numeric',month:'long'}):'jeszcze nie robiona';
   return `<h3>Kopia zapasowa</h3><p class="empty" style="margin-bottom:10px">Zrób kopię przed aktualizacją albo przeniesieniem aplikacji pod inny adres. Przywrócenie zastępuje obecne dane. Ostatnia kopia: ${lb}.</p><div class="acts"><button class="ghost" data-a="bkdl">Zapisz plik</button><button class="ghost" data-a="bkcp">Kopiuj dane</button><button class="ghost" data-a="bkfile">Wczytaj z pliku</button></div><textarea id="bk" rows="3" placeholder="Tu wklej skopiowaną kopię i dotknij Przywróć" style="margin-top:10px"></textarea><div class="acts" style="margin-top:8px"><button class="ghost" data-a="bkrs">Przywróć z pola</button></div><p class="empty" id="bkm" style="margin-top:8px"></p><input id="bkf" type="file" accept=".json,application/json" hidden>`;
 }
-const bkData=()=>JSON.stringify({app:'planer-posilkow',v:1,date:new Date().toISOString(),data:S});
+const bkData=()=>JSON.stringify({app:'planer-posilkow',v:1,date:new Date().toISOString(),data:Object.assign({},S,{set:Object.assign({},S.set,{ai:undefined})})});
 function bkMsg(t){const n=$('#bkm');if(n)n.textContent=t}
 async function bkSave(){
   const json=bkData(),name='planer-kopia-'+iso(new Date())+'.json';
@@ -562,7 +587,7 @@ function bkRestore(txt){
     const j=JSON.parse(txt),d=j&&j.data;
     if(!d||!d.plan||!d.history)throw 0;
     try{localStorage.setItem(KEY+'-prev',JSON.stringify(S))}catch(e){}
-    S.plan=d.plan;S.history=d.history;
+    S.plan=d.plan;S.history=d.history;if(d.foods)S.foods=d.foods;
     if(d.slots&&d.slots.length)S.slots.splice(0,S.slots.length,...d.slots);
     if(d.set)S.set=Object.assign(S.set,d.set);
     dedupeHist();save();theme();render();
@@ -570,6 +595,7 @@ function bkRestore(txt){
   }catch(e){bkMsg('To nie wygląda na kopię z planera. Sprawdź, czy skopiowałeś całość.')}
 }
 document.addEventListener('change',e=>{
+  if(e.target.id==='lbf'){const f=e.target.files[0];if(f)labelScan(f);e.target.value='';return}
   if(e.target.id!=='bkf')return;
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();r.onload=()=>bkRestore(r.result);r.readAsText(f);e.target.value='';
@@ -582,6 +608,126 @@ function countUp(){
   const t0=performance.now();
   const step=t=>{const q=Math.min(1,(t-t0)/650),e=1-Math.pow(1-q,3);el.textContent=Math.round(from+(to-from)*e);if(q<1&&el.isConnected)requestAnimationFrame(step)};
   el.textContent=from;requestAnimationFrame(step);
+}
+let curItems=[],prodRes=[],scStream=null,scTimer=null,scReader=null,IMGOK2=0;
+const aiCfg=()=>S.set.ai&&S.set.ai.url?S.set.ai:null;
+const aiReady=()=>!!SMP||!!aiCfg();
+const imgReady=()=>aiCfg()?true:IMGOK;
+function refreshAI(){const a=$('#ai'),q=$('#aip'),l=$('#lab');if(a)a.hidden=!aiReady();if(q)q.hidden=!(curImg&&imgReady());if(l)l.hidden=!(aiReady()&&imgReady())}
+const aiErr=e=>e&&e.message==='noai'?'AI jest niedostępne. Ustaw serwer AI w Ustawieniach.':'Nie udało się. Spróbuj ponownie.'+(e&&e.message&&e.message!=='noai'&&e.message!=='empty'?' ('+String(e.message).slice(0,70)+')':'');
+async function aiAsk(prompt,img){
+  const c=aiCfg();
+  if(c){
+    const r=await fetch(c.url,{method:'POST',headers:{'content-type':'application/json','x-app-key':c.key||''},body:JSON.stringify({prompt,image:img||null})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||j.error)throw new Error(j.error||('HTTP '+r.status));
+    return {text:j.text||''};
+  }
+  if(SMP)return await SMP(prompt,img?{images:dataBlob(img)}:undefined);
+  throw new Error('noai');
+}
+const jparse=t=>JSON.parse(String(t).match(/\{[\s\S]*\}/)[0]);
+const num2=v=>{v=parseFloat(String(v).replace(',','.'));return isNaN(v)?0:v};
+function setItems(a){curItems=a;renderItems()}
+function renderItems(){
+  const L=$('#il');if(!L)return;
+  L.innerHTML=curItems.map((it,i)=>`<div class="ir"><span class="in">${esc(it.n)}</span><button class="stb" data-a="gm" data-i="${i}" aria-label="Mniej">−</button><input class="ig2" data-i="${i}" type="number" inputmode="decimal" value="${it.g}" min="0"><button class="stb" data-a="gp" data-i="${i}" aria-label="Więcej">+</button><span class="gu">g</span><b class="ik">${Math.round(it.g*it.k/100)}</b><button class="x" data-a="idel" data-i="${i}" aria-label="Usuń">×</button></div>`).join('')+(curItems.length?`<p class="empty" style="margin:4px 2px 10px">Liczba przy gramach to kcal. Makro posiłku liczy się z tej listy.</p>`:'');
+  recalcItems();
+}
+function recalcItems(){
+  if(!curItems.length)return;
+  const t=[0,0,0,0];curItems.forEach(it=>{const x=it.g/100;t[0]+=it.k*x;t[1]+=it.p*x;t[2]+=it.f*x;t[3]+=it.c*x});
+  [1,2,3,4].forEach((n,j)=>$('#m'+n).value=j?Math.round(t[j]*10)/10:Math.round(t[0]));
+  $('#ig').value=curItems.map(it=>it.g+' g '+it.n).join(', ');
+}
+function gramsInput(el){const it=curItems[+el.dataset.i];if(!it)return;it.g=Math.max(0,num2(el.value));el.parentNode.querySelector('.ik').textContent=Math.round(it.g*it.k/100);recalcItems()}
+function dbMatch(txt){const r=nrm(txt);let best=null,bs=0;FOOD.forEach(e=>{if(e.t.length>bs&&e.t.every(al=>al.some(a=>r.includes(a)))){best=e;bs=e.t.length}});return best}
+const resRow=(f,i)=>`<button class="sgi" data-a="padd" data-i="${i}"><span>${esc(f.n)}${f.db?' (baza)':''}</span><small>${Math.round(f.k)} kcal / 100 g</small></button>`;
+function prodSearch(q){
+  q=(q||'').trim();prodRes=[];
+  if(q){S.foods.forEach(f=>{if(mq2(f.n,q))prodRes.push(f)});const b=dbMatch(q);if(b)prodRes.push({n:q.charAt(0).toUpperCase()+q.slice(1),k:b.k,p:b.p,f:b.f,c:b.c,u:b.u,db:1})}
+  else prodRes=S.foods.slice(-6).reverse();
+  $('#pl').innerHTML=prodRes.map(resRow).join('')||(q?`<p class="empty" style="margin:6px 2px">Brak w Moich produktach. Użyj skanera, etykiety albo „Szukaj w sieci”.</p>`:'');
+}
+function showDraft(p){
+  $('#pdn').value=p.n||'';$('#pdk').value=p.k??'';$('#pdp').value=p.p??'';$('#pdf').value=p.f??'';$('#pdc').value=p.c??'';$('#pdg').value=p.g||100;
+  $('#pd').hidden=false;$('#pl').innerHTML='';openD($('#pr'));
+}
+function draftAdd(){
+  const n=$('#pdn').value.trim();if(!n){$('#pdn').classList.add('err');$('#pdn').focus();return}
+  const it={n,g:num2($('#pdg').value)||100,k:num2($('#pdk').value),p:num2($('#pdp').value),f:num2($('#pdf').value),c:num2($('#pdc').value)};
+  if($('#pds').checked){const key=nkey(n),e=S.foods.find(x=>nkey(x.n)===key),rec={n,k:it.k,p:it.p,f:it.f,c:it.c};if(e)Object.assign(e,rec);else S.foods.push(rec);save()}
+  curItems.push(it);renderItems();$('#pd').hidden=true;$('#pm').textContent='Dodano: '+n+'. Ustaw gramaturę na liście.';
+}
+function shrink(file,max){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.82))};im.onerror=rej;im.src=r.result};r.onerror=rej;r.readAsDataURL(file)})}
+async function labelScan(file){
+  const m=$('#pm');m.textContent='Czytam etykietę…';
+  try{
+    const img=await shrink(file,1400);
+    const r=await aiAsk('To zdjęcie etykiety albo tabeli wartości odżywczych produktu spożywczego. Odczytaj wartości na 100 g (lub 100 ml). Jeśli podano je tylko na porcję, przelicz na 100 g. Odpowiedz wyłącznie obiektem JSON {"name":"nazwa produktu jeśli widoczna, inaczej pusty tekst","kcal":liczba,"p":białko w g,"f":tłuszcz w g,"c":węglowodany w g}. Żadnego innego tekstu.',img);
+    const j=jparse(r.text);showDraft({n:j.name||'',k:num2(j.kcal),p:num2(j.p),f:num2(j.f),c:num2(j.c)});
+    m.textContent='Odczytano z etykiety. Sprawdź wartości i ustaw gramaturę.';
+  }catch(e){m.textContent=aiErr(e)}
+}
+async function aiItems(photo){
+  const ing=$('#ig').value.trim(),n=$('#aim'),b=photo?$('#aip'):$('#aib');
+  if(photo&&!curImg)return;
+  if(!photo&&!ing){n.textContent='Opisz posiłek, np. 100 g skyru, 50 g borówek albo kanapka z szynką.';return}
+  const t0=b.textContent;b.disabled=true;b.textContent='Liczę…';n.textContent='';
+  try{
+    const p='Jesteś dietetykiem. '+(photo?'Na zdjęciu jest posiłek. Rozpoznaj składniki i oszacuj porcje w gramach.'+(ing?' Znane składniki: '+ing+'.':''):'Rozbij opis posiłku na składniki z gramaturą (jeśli brakuje gramatury, przyjmij typową porcję). Opis: '+ing+'.')+' Dla każdego składnika podaj wartości odżywcze NA PODANĄ GRAMATURĘ. Odpowiedz wyłącznie obiektem JSON {"items":[{"n":"nazwa","g":gramy,"kcal":liczba,"p":białko g,"f":tłuszcz g,"c":węglowodany g}]}. Żadnego innego tekstu.';
+    const r=await aiAsk(p,photo?curImg:null),j=jparse(r.text);
+    const a=(j.items||[]).map(x=>{const g=num2(x.g)||100;return{n:String(x.n||'?'),g:Math.round(g),k:num2(x.kcal)/g*100,p:num2(x.p)/g*100,f:num2(x.f)/g*100,c:num2(x.c)/g*100}});
+    if(!a.length)throw new Error('empty');
+    setItems(a);openD($('#pr'));openD($('#mx'));n.textContent='Szacunek AI. Popraw gramaturę, a makro przeliczy się samo.';
+  }catch(e){n.textContent=aiErr(e)}
+  b.disabled=false;b.textContent=t0;
+}
+async function offSearch(){
+  const q=$('#ps').value.trim(),m=$('#pm');if(!q){m.textContent='Wpisz nazwę produktu w polu wyżej.';return}
+  m.textContent='Szukam w Open Food Facts…';
+  try{
+    const r=await fetch('https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+'&search_simple=1&action=process&json=1&page_size=8&fields=product_name,brands,nutriments&lc=pl');
+    const j=await r.json();
+    prodRes=(j.products||[]).filter(x=>x.product_name&&x.nutriments&&x.nutriments['energy-kcal_100g']!=null).map(x=>({n:((x.brands?x.brands.split(',')[0]+' ':'')+x.product_name).trim(),k:+x.nutriments['energy-kcal_100g']||0,p:+x.nutriments.proteins_100g||0,f:+x.nutriments.fat_100g||0,c:+x.nutriments.carbohydrates_100g||0}));
+    $('#pl').innerHTML=prodRes.map(resRow).join('');
+    m.textContent=prodRes.length?'Wyniki z Open Food Facts. Dane wpisują użytkownicy, więc sprawdź je.':'Nic nie znaleziono.';
+  }catch(e){m.textContent='Szukanie w sieci nie działa w tej wersji lub brak internetu.'}
+}
+async function lookupEAN(code){
+  const m=$('#pm');m.textContent='Szukam kodu '+code+'…';openD($('#pr'));
+  try{
+    const r=await fetch('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields=product_name,brands,nutriments');
+    const j=await r.json();if(j.status!==1)throw 0;
+    const n=j.product.nutriments||{},b=j.product.brands?j.product.brands.split(',')[0]+' ':'';
+    showDraft({n:(b+(j.product.product_name||'')).trim()||code,k:n['energy-kcal_100g'],p:n.proteins_100g,f:n.fat_100g,c:n.carbohydrates_100g});
+    m.textContent='Znaleziono w Open Food Facts. Sprawdź wartości i ustaw gramaturę.';
+  }catch(e){m.textContent='Nie znaleziono kodu '+code+'. Zrób zdjęcie etykiety albo dodaj produkt ręcznie.'}
+}
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
+async function scanOpen(){
+  $('#sc').hidden=false;const m=$('#scm');m.textContent='Skieruj aparat na kod kreskowy';
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){m.textContent='Aparat niedostępny w tej przeglądarce. Wpisz kod EAN poniżej.';return}
+  try{
+    if('BarcodeDetector' in window){
+      scStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+      const v=$('#scv');v.srcObject=scStream;await v.play();
+      const bd=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});
+      scTimer=setInterval(async()=>{try{const r=await bd.detect(v);if(r.length){const c=r[0].rawValue;scanClose();lookupEAN(c)}}catch(e){}},300);
+    }else{
+      if(!window.ZXing)await loadScript('https://unpkg.com/@zxing/library@0.20.0');
+      scReader=new ZXing.BrowserMultiFormatReader();
+      scReader.decodeFromConstraints({video:{facingMode:'environment'}},'scv',r=>{if(r){const c=r.getText();scanClose();lookupEAN(c)}});
+    }
+  }catch(e){m.textContent='Nie udało się uruchomić skanera. Wpisz kod EAN poniżej.'}
+}
+function scanClose(){clearInterval(scTimer);scTimer=null;if(scStream){scStream.getTracks().forEach(t=>t.stop());scStream=null}if(scReader){try{scReader.reset()}catch(e){}scReader=null}$('#sc').hidden=true}
+function aiSetHTML(){
+  const a=S.set.ai||{};
+  return `<h3>Serwer AI</h3><p class="empty" style="margin-bottom:8px">Adres i hasło własnego serwera (instrukcja w pliku README). Bez tego AI działa tylko w wersji otwartej w Claude.</p><input id="aiu" placeholder="https://nazwa.twojekonto.workers.dev" value="${esc(a.url||'')}" autocomplete="off" autocapitalize="off"><input id="aik" type="password" placeholder="Hasło aplikacji" value="${esc(a.key||'')}" style="margin-top:8px"><div class="acts" style="margin-top:8px"><button class="ghost" data-a="aisv">Zapisz</button><button class="ghost" data-a="aitst">Przetestuj</button></div><p class="empty" id="aimsg" style="margin-top:8px"></p>`;
+}
+function foodsHTML(){
+  return `<h3>Moje produkty</h3>`+(S.foods.length?`<div class="grp">`+S.foods.map((f,i)=>`<div class="meal"><div class="mi"><span><span class="mn">${esc(f.n)}</span><span class="mm">${Math.round(f.k)} kcal, B ${f.p}, T ${f.f}, W ${f.c} na 100 g</span></span></div><button class="x" data-a="fdel" data-i="${i}" aria-label="Usuń ${esc(f.n)}">×</button></div>`).join('')+`</div>`:`<p class="empty">Produkty ze skanera, etykiet i wyszukiwarki zapiszą się tutaj.</p>`);
 }
 let hOpen=null;
 function histList(q){
@@ -613,7 +759,7 @@ function renderSug(){
   $('#sg').innerHTML=h;
 }
 function openSheet(slot,pre,newSlot,edit){
-  editing=edit||null;sSlot=SL.some(s=>s[0]===slot)?slot:SL[0][0];$('#stt').textContent=editing?'Edytuj posiłek':'Dodaj posiłek';$('#hsw').hidden=!!editing&&editing.k==='h';$('#hs').checked=editing&&editing.k==='p'?!!find(pre.name):true;$('#sd').hidden=!!editing&&editing.k==='h';$('#aim').textContent='';$('#lcm').textContent='';$('#qt').value=pre&&pre.qty?pre.qty:1;$('#qrow').hidden=!!editing&&editing.k==='h';$('#sd').textContent=dlabel(sel);chips();
+  editing=edit||null;sSlot=SL.some(s=>s[0]===slot)?slot:SL[0][0];$('#stt').textContent=editing?'Edytuj posiłek':'Dodaj posiłek';$('#hsw').hidden=!!editing&&editing.k==='h';$('#hs').checked=editing&&editing.k==='p'?!!find(pre.name):true;$('#sd').hidden=!!editing&&editing.k==='h';$('#aim').textContent='';$('#lcm').textContent='';$('#qt').value=pre&&pre.qty?pre.qty:1;curItems=pre&&pre.items?JSON.parse(JSON.stringify(pre.items)):[];renderItems();$('#pd').hidden=true;$('#pm').textContent='';$('#ps').value='';prodSearch('');refreshAI();$('#qrow').hidden=!!editing&&editing.k==='h';$('#sd').textContent=dlabel(sel);chips();
   $('#nm').value='';$('#nm').classList.remove('err');[1,2,3,4].forEach(i=>$('#m'+i).value='');$('#mx').open=false;$('#ig').value='';setImg('');$('#ex').open=false;$('#ns').hidden=!newSlot;chips();$('#nsn').value='';$('#nsn').classList.remove('err');
   if(pre){$('#nm').value=pre.name;fill(pre)}
   $('#ov').hidden=false;renderSug();
@@ -625,7 +771,7 @@ function saveMeal(){
   if(!name){$('#nm').classList.add('err');$('#nm').focus();return}
   const m=[1,2,3,4].map(i=>$('#m'+i).value.trim()),ing=$('#ig').value.trim(),E=editing;
   if(!$('#ns').hidden){const sn=$('#nsn').value.trim();if(!sn){$('#nsn').classList.add('err');$('#nsn').focus();return}const ex=SL.find(s=>s[1].toLowerCase()===sn.toLowerCase());if(ex)sSlot=ex[0];else{sSlot='s'+Date.now().toString(36);SL.push([sSlot,sn])}}
-  const vals={name,kcal:m[0],p:m[1],f:m[2],c:m[3],ing,img:curImg},qty=Math.max(.25,Math.round((qn||parseFloat(String($('#qt').value).replace(',','.'))||1)*4)/4);
+  const vals={name,kcal:m[0],p:m[1],f:m[2],c:m[3],ing,img:curImg,items:curItems.length?JSON.parse(JSON.stringify(curItems)):undefined},qty=Math.max(.25,Math.round((qn||parseFloat(String($('#qt').value).replace(',','.'))||1)*4)/4);
   const toHist=()=>{let h=find(name);if(!h){h={used:0};S.history.push(h)}Object.assign(h,vals,{slot:sSlot,last:Date.now()});return h};
   if(E&&E.k==='h'){Object.assign(S.history[E.i],vals,{slot:sSlot})}
   else if(E&&E.k==='p'){const p=(S.plan[sel]||[]).find(x=>x.id===E.id);if(p)Object.assign(p,vals,{slot:sSlot,qty});if($('#hs').checked)toHist()}
@@ -673,8 +819,23 @@ document.addEventListener('click',e=>{
   else if(a==='bkcp')bkCopy()
   else if(a==='bkfile')$('#bkf').click()
   else if(a==='bkrs')bkRestore($('#bk').value)
-  else if(a==='ai')aiCalc()
-  else if(a==='aip')aiPhoto()
+  else if(a==='ai')aiItems(false)
+  else if(a==='aip')aiItems(true)
+  else if(a==='gm'){const it=curItems[+D.i];if(it){it.g=Math.max(0,Math.round(it.g-(it.g>150?25:10)));renderItems()}}
+  else if(a==='gp'){const it=curItems[+D.i];if(it){it.g=Math.round(it.g+(it.g>=150?25:10));renderItems()}}
+  else if(a==='idel'){curItems.splice(+D.i,1);renderItems();if(!curItems.length)[1,2,3,4].forEach(n=>$('#m'+n).value='')}
+  else if(a==='padd'){const f=prodRes[+D.i];if(f){curItems.push({n:f.n,g:f.u||100,k:+f.k||0,p:+f.p||0,f:+f.f||0,c:+f.c||0});if(!f.db&&!S.foods.some(x=>nkey(x.n)===nkey(f.n))){S.foods.push({n:f.n,k:f.k,p:f.p,f:f.f,c:f.c});save()}renderItems();$('#ps').value='';prodSearch('')}}
+  else if(a==='bar')scanOpen()
+  else if(a==='scx')scanClose()
+  else if(a==='ean'){const c=$('#ean').value.trim();if(c){scanClose();lookupEAN(c)}}
+  else if(a==='lab')$('#lbf').click()
+  else if(a==='off')offSearch()
+  else if(a==='pman')showDraft({n:$('#ps').value.trim()})
+  else if(a==='pdadd')draftAdd()
+  else if(a==='pdx')$('#pd').hidden=true
+  else if(a==='fdel'){S.foods.splice(+D.i,1);save();render()}
+  else if(a==='aisv'){const u=$('#aiu').value.trim(),k=$('#aik').value;S.set.ai=u?{url:u,key:k}:undefined;save();refreshAI();$('#aimsg').textContent=u?'Zapisano.':'Usunięto serwer AI.'}
+  else if(a==='aitst'){const u=$('#aiu').value.trim(),k=$('#aik').value,m=$('#aimsg');S.set.ai=u?{url:u,key:k}:undefined;save();m.textContent='Testuję…';aiAsk('Odpowiedz wyłącznie obiektem JSON {"ok":true}').then(r=>{m.textContent='Działa. Odpowiedź serwera: '+String(r.text).slice(0,60)}).catch(e=>{m.textContent=aiErr(e)})}
   else if(a==='photo')$('#pf').click()
   else if(a==='rmph')setImg('')
   else if(a==='tog'){openId=openId===D.id?null:D.id;render()}
@@ -687,6 +848,8 @@ document.addEventListener('click',e=>{
   else if(a==='save')saveMeal();
 });
 document.addEventListener('input',e=>{
+  if(e.target.id==='ps'){prodSearch(e.target.value);return}
+  if(e.target.classList&&e.target.classList.contains('ig2')){gramsInput(e.target);return}
   if(e.target.id==='hq'){hqv=e.target.value;$('#hl').innerHTML=histList(hqv)}
   else if(e.target.id==='nm'){
     e.target.classList.remove('err');
@@ -726,6 +889,7 @@ $('#pf').addEventListener('change',e=>{const f=e.target.files[0];if(f)pickPhoto(
 dedupeHist();
 theme();
 render();
+refreshAI();
 if('serviceWorker' in navigator)addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});
 </script>
 </body>
