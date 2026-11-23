@@ -283,7 +283,7 @@ nav button.on svg{animation:tabpop .42s var(--spring)}
     <details id="ex"><summary>Składniki i zdjęcie (opcjonalnie)</summary><div class="dc">
       <label>Składniki z gramaturą (np. 100 g skyru, 50 g borówek)<textarea id="ig" rows="3"></textarea></label>
       <div><button class="ghost" id="lcb" data-a="lc" type="button" style="margin-top:10px">Policz z bazy produktów</button><p class="empty" id="lcm" style="margin-top:6px"></p></div>
-      <div id="ai" hidden><button class="ghost" id="aib" data-a="ai" type="button" style="margin:10px 6px 0 0">Policz makro (AI)</button><button class="ghost" id="aip" data-a="aip" type="button" style="margin-top:10px" hidden>Policz ze zdjęcia (AI)</button><p class="empty" id="aim" style="margin-top:6px"></p></div>
+      <div id="ai"><button class="ghost" id="aib" data-a="ai" type="button" style="margin:10px 6px 0 0">Policz makro (AI)</button><button class="ghost" id="aip" data-a="aip" type="button" style="margin-top:10px" hidden>Policz ze zdjęcia (AI)</button><p class="empty" id="aim" style="margin-top:6px"></p></div>
       <div class="pv"><img id="pi" class="th" alt="" hidden><button class="ghost" data-a="photo">Dodaj zdjęcie</button><button class="ghost" id="rp" data-a="rmph" hidden>Usuń zdjęcie</button></div>
       <input id="pf" type="file" accept="image/*" hidden>
     </div></details>
@@ -378,17 +378,38 @@ async function aiPhoto(){
 let SMP=null;
 let IMGOK=false;(async()=>{try{if(window.claude&&claude.use){SMP=await claude.use('sample');if(SMP){$('#ai').hidden=false;try{IMGOK=!!(await SMP.limits()).images}catch(e){}setImg(curImg);refreshAI()}}}catch(e){}})();
 async function aiCalc(){
-  const ing=$('#ig').value.trim(),n=$('#aim'),b=$('#aib');
-  if(!ing){n.textContent='Wpisz składniki z gramaturą, np. 100 g skyru, 50 g borówek.';return}
-  b.disabled=true;b.textContent='Liczę…';n.textContent='';
-  try{
-    const r=await SMP('Jesteś dietetykiem. Oblicz łączne wartości odżywcze całego posiłku na podstawie składników z gramaturą: '+ing+'. Jeśli brakuje gramatury, przyjmij typową porcję. Odpowiedz wyłącznie obiektem JSON w formacie {"kcal":liczba,"p":liczba,"f":liczba,"c":liczba}, gdzie p to białko, f tłuszcze, c węglowodany w gramach. Żadnego innego tekstu.');
-    const j=JSON.parse(r.text.match(/\{[\s\S]*\}/)[0]),v=[j.kcal,j.p,j.f,j.c].map(x=>Math.round(+x*10)/10);
-    if(v.some(isNaN))throw 0;
-    [1,2,3,4].forEach((i,k)=>$('#m'+i).value=k?v[k]:Math.round(v[0]));
-    openD($('#mx'));n.textContent='Szacunek AI. Sprawdź i popraw w razie potrzeby.';
-  }catch(e){n.textContent=e&&e.code==='not_granted'?'Brak zgody na użycie AI.':'Nie udało się policzyć. Spróbuj ponownie.'}
-  b.disabled=false;b.textContent='Policz makro (AI)';
+  const ing = $('#ig').value.trim() || $('#nm').value.trim();
+  const n = $('#aim'), b = $('#aib');
+  if(!ing){
+    n.textContent = 'Wpisz nazwę posiłku lub składniki z gramaturą, np. 100 g skyru, 50 g borówek.';
+    return;
+  }
+  b.disabled = true; b.textContent = 'Liczę…'; n.textContent = '';
+  try {
+    const prompt = 'Jesteś dietetykiem. Oblicz łączne wartości odżywcze całego posiłku na podstawie opisu: ' + ing + '. Jeśli brakuje gramatury, przyjmij typową porcję. Odpowiedz wyłącznie czystym obiektem JSON w formacie {"kcal":liczba,"p":liczba,"f":liczba,"c":liczba}, gdzie p to białko, f tłuszcze, c węglowodany w gramach. Żadnego innego tekstu ani markdown.';
+    
+    const res = await fetch('https://plan-posilkow-ai.maks-sokole-oko.workers.dev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+
+    const data = await res.json();
+    if (!data.reply) throw new Error('Brak odpowiedzi z serwera');
+
+    const j = JSON.parse(data.reply.match(/\{[\s\S]*\}/)[0]);
+    const v = [j.kcal, j.p, j.f, j.c].map(x => Math.round(+x * 10) / 10);
+    
+    if(v.some(isNaN)) throw new Error('Błędny format liczb');
+    
+    [1,2,3,4].forEach((i,k) => $('#m'+i).value = k ? v[k] : Math.round(v[0]));
+    openD($('#mx'));
+    n.textContent = 'Szacunek AI (Groq). Sprawdź i popraw w razie potrzeby.';
+  } catch(e) {
+    console.error(e);
+    n.textContent = 'Nie udało się policzyć. Sprawdź połączenie i spróbuj ponownie.';
+  }
+  b.disabled = false; b.textContent = 'Policz makro (AI)';
 }
 let openId=null;
 function mealRow(m){
